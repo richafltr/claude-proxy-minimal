@@ -25,57 +25,59 @@ async function initializeGoogleAuth() {
     try {
         const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
         
-        if (serviceAccountJson) {
-            console.log('🔑 Attempting to use service account from environment...');
+        if (serviceAccountJson && !serviceAccountJson.startsWith('EV[1:')) {
+            console.log('🔑 Attempting to parse service account JSON...');
+            console.log(`   📊 JSON length: ${serviceAccountJson.length}`);
+            console.log(`   📝 First 50 chars: ${serviceAccountJson.substring(0, 50)}`);
             
-            // DigitalOcean encrypts secrets with EV[1:...] format, which isn't standard base64
-            // Try multiple decoding strategies
             let credentials = null;
+            let success = false;
             
+            // Strategy 1: Direct JSON parse
             try {
-                // Strategy 1: Try direct JSON parse (if it's already plain JSON)
                 credentials = JSON.parse(serviceAccountJson);
-                console.log('✅ Parsed as direct JSON');
+                console.log('✅ SUCCESS: Parsed as direct JSON');
+                success = true;
             } catch (e1) {
+                console.log(`⚠️ Direct JSON parse failed: ${e1.message.substring(0, 100)}`);
+                
+                // Strategy 2: Base64 decode then parse  
                 try {
-                    // Strategy 2: Try base64 decode
                     const decoded = Buffer.from(serviceAccountJson, 'base64').toString('utf-8');
                     credentials = JSON.parse(decoded);
-                    console.log('✅ Decoded from base64');
+                    console.log('✅ SUCCESS: Decoded from base64 then parsed');
+                    success = true;
                 } catch (e2) {
-                    console.log('⚠️ Could not parse service account JSON. Using default auth.');
-                    console.log('   Direct parse error:', e1.message.substring(0, 100));
-                    console.log('   Base64 parse error:', e2.message.substring(0, 100));
+                    console.log(`⚠️ Base64 decode failed: ${e2.message.substring(0, 100)}`);
                 }
             }
             
-            if (credentials && credentials.type === 'service_account') {
+            if (success && credentials && credentials.type === 'service_account') {
+                console.log(`   📧 Client email: ${credentials.client_email}`);
+                console.log(`   🏗️ Project ID: ${credentials.project_id}`);
+                
                 googleAuth = new GoogleAuth({
                     credentials: credentials,
                     scopes: ['https://www.googleapis.com/auth/cloud-platform'],
                     projectId: CONFIG.GOOGLE_PROJECT_ID
                 });
-                console.log(`✅ Service account loaded: ${credentials.client_email}`);
-            } else {
-                console.log('⚠️ Invalid credentials format, using default auth');
-                googleAuth = new GoogleAuth({
-                    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-                    projectId: CONFIG.GOOGLE_PROJECT_ID
-                });
+                console.log('✅ Service account authentication configured');
+                return true;
             }
-        } else {
-            console.log('🔑 Using default Google Auth (no service account provided)');
-            googleAuth = new GoogleAuth({
-                scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-                projectId: CONFIG.GOOGLE_PROJECT_ID
-            });
         }
         
-        console.log('✅ Google Auth initialized');
+        // Fallback to default authentication
+        console.log('🔑 Using default Google Auth (Application Default Credentials)');
+        googleAuth = new GoogleAuth({
+            scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+            projectId: CONFIG.GOOGLE_PROJECT_ID
+        });
+        console.log('✅ Default Google Auth initialized');
         return true;
+        
     } catch (error) {
-        console.error('❌ Failed to initialize Google Auth:', error.message);
-        return false;
+        console.error('❌ FATAL: Failed to initialize Google Auth:', error.message);
+        throw error; // Don't start server if auth fails
     }
 }
 
@@ -107,14 +109,22 @@ async function getAuthToken() {
     }
 }
 
-// Model mapping
+// Model mapping - CORRECT GOOGLE CLOUD MODEL NAMES
 const MODEL_MAP = {
-    'claude-4-opus': 'claude-sonnet-4',
-    'claude-4-sonnet': 'claude-sonnet-4', 
-    'claude-4': 'claude-sonnet-4',
-    'claude-sonnet-4': 'claude-sonnet-4',
+    // Primary Claude models (exact Google Cloud names)
+    'claude-opus-4-1': 'claude-opus-4-1',        // Claude Opus 4.1 - most powerful
+    'claude-sonnet-4': 'claude-sonnet-4',        // Claude Sonnet 4 - balanced 
+    'claude-3-7-sonnet': 'claude-3-7-sonnet',    // Claude 3.7 Sonnet - extended thinking
+    
+    // Common aliases
+    'claude-4-1-opus': 'claude-opus-4-1',
+    'claude-opus-4.1': 'claude-opus-4-1', 
+    'claude-4-sonnet': 'claude-sonnet-4',
+    'claude-sonnet-4.0': 'claude-sonnet-4',
     'claude-3.7-sonnet': 'claude-3-7-sonnet',
-    'claude-3-7-sonnet': 'claude-3-7-sonnet',
+    'claude-sonnet-3.7': 'claude-3-7-sonnet',
+    
+    // OpenAI compatibility (default to Sonnet 4)
     'gpt-4': 'claude-sonnet-4',
     'gpt-4-turbo': 'claude-sonnet-4'
 };
