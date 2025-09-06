@@ -66,14 +66,28 @@ async function initializeGoogleAuth() {
             }
         }
         
-        // Fallback to default authentication
-        console.log('🔑 Using default Google Auth (Application Default Credentials)');
-        googleAuth = new GoogleAuth({
-            scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-            projectId: CONFIG.GOOGLE_PROJECT_ID
-        });
-        console.log('✅ Default Google Auth initialized');
-        return true;
+        // Fallback to hardcoded service account (as backup)
+        console.log('🔑 Trying hardcoded service account as fallback...');
+        const fallbackServiceAccount = "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAiZ2VuLWxhbmctY2xpZW50LTA0NjU4OTU0MzciLAogICJwcml2YXRlX2tleV9pZCI6ICJhNzVhZTVlYTBmZjk2ZjFiNzg5NzQzOGJmYzhkZTc4MWQzMWIyMWQ3IiwKICAicHJpdmF0ZV9rZXkiOiAiLS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tXG5NSUlFdmdJQkFEQU5CZ2txaGtpRzl3MEJBUUVGQUFTQ0JLZ3dnZ1NrQWdFQUFvSUJBUURHbThJdUF3YVVGajJUXG42elZOUVhMeU5OSkFmQ3QxUnRSWCtSeEtnSTFHNFZvMVNqNHdOYnZYcWQ0aS8vRWdpVXVuS0swK3BsQzRkVjRyXG5XeEVuZEZhYWsxSFErSzIxRUpZUHczVFIzdjFzQ05Zb1lxVWpHSXdEbm9TZ0hJVVFtNTF2enJRVXk5NDJwUjN1XG52Mm1ET0JNUWRIVTNHVWZSTEQ2YWZaRERkOEpjamw3LytnRUczaHdhY3pQVjJyUFRhVkl0OFF3akxka01ycWwzXG5jTFpWaUx5MGVpRHVEWFlVS3NsdmZRMlp3S1Jvc0l0VG1WaEdWc1hNdHE1SjhCN1FRRzBHTjhRYzVXOWtUQTdKXG4yQUt6Zjhya2t0ZjJxUllMMHFFeHZ2aUlwek5MZm53SVdvTHo4SWpvK2o1cEF6SmI4aUl6K3lyTHVJL3dMbTBcbnpwM2JCM0R6QWdNQkFBRUNnZ0VBTkhVamZyK3gxeDlndUZjaHh2d0lma3pSVTlONEw0dTd2bGkvemp4U0d1eWVcbnhRQ05HSEs0NEtldlVwTkRmeEtFZHV4WmhmaXJ6V3pDcUxUdS9QclBmUmg0UGJmUk9jZmR1dUFuVk4rUEZCL3BcbllOVmRSTDNSRFl1ckFCZElWakNrRHNvTDZvcEdjU3gva1hYaFNwVmZBN09lMmlURlFVeHNaS1hSdks4L0dPN1NcbnBuNUNZYnZ3T1pBbWlHTkF4U0JUS0tjZkZQS01zUkMwckRSRE1NSUgxM3RZS2dVaXRqOXlVYzA5clc4ODJMMlNcbjhUL3BsZEdMdXVrUTJSVXoxMEx0c0EwM3VLWkpYL0dYY1VXVTBXL1cwNGRSTXZmNHlZbjdlZ3VBa3JuNzY1empcbmtYVm84SGZPUXJGME91WXZBejVVQzMzcERPc0hBSnZsRjNieUxUdzlrUUtCZ1FEbkFGMG1JNHVlZ0JOTWdEbU1cblBNOUg3M1ZYbVRlL0ZxSVV0R3FPeUx3QmdUejJLOXh5Y0ZkUWUwS1QzVXQxeXNoeTZVVXl6V0tyeWl6T1ZIa3BcblJiTnFGNlhZRytGVmJibTBhcWVxbHFWYVlkMGwxRGVQay82c3NaWGpuQ25YSEhqTlYvcStxelFaV3FoOHMzWHZcbnNZaUI3SXoxc0dwcVU3aG96S0VRZlp0TTlRS0JnUURjR2Z1cmlJTWVNTjBFajNrMVFZV3U2QnhLSlJORlc3QmpcbnRTTlQzMnhpekVKb1daVmN6RWxzR1R6Q3dVUDFyZEJDalYzR3k5L1JUTDBCUFU0NGNpTG9FK084bTJxbDBmXG5CbWpHdXVER3E5UXpyZjFiamU2Vk1BMlhmSEpiNVF5ZW5uZGIwRWpiNDVQRVdtQkFDS2FaUVRobHRWaVkvdk1HXG5MQTU5WWZFVlJ3S0JnR2l2WFlkZkxITFVEK3IzRDNLbk1kM2x3d1BEeCtPdFdoNlA5SXBvcGVyNHFxdlZETDQvXG44eEhpQ2pZQVg2WXVFOUVmcmVCciszOW16QTlsY05Nblp6dDVKQXRmOXlwRDQ1akRqT0JlRE9sODJEL0FnTDFzXG5rRW1xNFFhWlNzelZkbGw0dVlXWENMRkV5SDVheGVPdVRQSzBSTjFDNmJidDRmQjhhN0dSZXNQUkFvR0JBSWZXXG5wV005TWliczQwc1FQUzhvREJoaGVpd3NhNU5QdmpJYk5mMXFrNXI2RXpZUnE4UUU5SDk1cCsxT2wrSEZieFhUXG41MzlzamVxL29LcXlPM1dzbWdnM2lWNWVTZVNwaWlVK3NHV09LbkdTMUxrOGRYUU95YU5iYjlnQlh4Ymw2djd1XG5NQjRERXlSYWRQVW5EZVlYTUxLKzlNNll1R0JjWUtKN2lNQktkUjY3QW9HQkFKY3F5V0cwVUpiZmFpQVFwQ0ZBXG5raFNhaTR0WWxSVkJpNWY5UXdJelJXbzlXdDhWMG5XZlVkYTF3SkVtZEM1S212ZTR3SFh1aDJqUmRnRnR1MHFsXG5IYk44YXpOSnE3V0Z6Sm91M0RBU0NDbFRreDFRYU1RdllsVnVvQ1FqUGNXdWRpY3NDS0RqZ25QVDQYVlkJM2pYXG5rQnRjTHVYKzBSSUZOSStiRERNU0gxQmlcbi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS1cbiIsCiAgImNsaWVudF9lbWFpbCI6ICJjbGF1ZGUtcHJveHktc2FAZ2VuLWxhbmctY2xpZW50LTA0NjU4OTU0MzcuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLAogICJjbGllbnRfaWQiOiAiMTExMzU0NDY1OTg0NTgyNTY3ODQ5IiwKICAiYXV0aF91cmkiOiAiaHR0cHM6Ly9hY2NvdW50cy5nb29nbGUuY29tL28vb2F1dGgyL2F1dGgiLAogICJ0b2tlbl91cmkiOiAiaHR0cHM6Ly9vYXV0aDIuZ29vZ2xlYXBpcy5jb20vdG9rZW4iLAogICJhdXRoX3Byb3ZpZGVyX3g1MDlfY2VydF91cmwiOiAiaHR0cHM6Ly93d3cuZ29vZ2xlYXBpcy5jb20vb2F1dGgyL3YxL2NlcnRzIiwKICAiY2xpZW50X3g1MDlfY2VydF91cmwiOiAiaHR0cHM6Ly93d3cuZ29vZ2xlYXBpcy5jb20vcm9ib3QvdjEvbWV0YWRhdGEveDUwOS9jbGF1ZGUtcHJveHktc2ElNDBnZW4tbGFuZy1jbGllbnQtMDQ2NTg5NTQzNy5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgInVuaXZlcnNlX2RvbWFpbiI6ICJnb29nbGVhcGlzLmNvbSIKfQo=";
+        
+        try {
+            const fallbackCredentials = JSON.parse(Buffer.from(fallbackServiceAccount, 'base64').toString('utf-8'));
+            googleAuth = new GoogleAuth({
+                credentials: fallbackCredentials,
+                scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+                projectId: CONFIG.GOOGLE_PROJECT_ID
+            });
+            console.log('✅ Fallback service account loaded successfully');
+            return true;
+        } catch (fallbackError) {
+            console.log('⚠️ Fallback service account also failed, using ADC');
+            googleAuth = new GoogleAuth({
+                scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+                projectId: CONFIG.GOOGLE_PROJECT_ID
+            });
+            console.log('✅ Default Google Auth initialized');
+            return true;
+        }
         
     } catch (error) {
         console.error('❌ FATAL: Failed to initialize Google Auth:', error.message);
@@ -137,8 +151,9 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'healthy',
         service: 'claude-proxy-minimal',
-        version: '1.0.0',
-        timestamp: new Date().toISOString()
+        version: '1.0.1',
+        timestamp: new Date().toISOString(),
+        build: 'force-rebuild'
     });
 });
 
